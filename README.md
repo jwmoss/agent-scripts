@@ -72,7 +72,7 @@ npx skills add . -g -y    # install from local checkout
 
 | Skill | Description |
 |-------|-------------|
-| [modern-python](skills/modern-python/) | Modern Python project setup with uv, ruff, and pytest |
+| [modern-python](skills/modern-python/) | Modern Python project setup with uv, ruff, and pytest (vendored from [trailofbits/skills](https://github.com/trailofbits/skills/tree/main/plugins/modern-python)) |
 
 ### Writing
 
