@@ -1,112 +1,71 @@
 ---
 name: jellyseerr
-description: Search for movies and TV shows and request them via Jellyseerr/Seerr API. Use when the user wants to request media, find movies or TV shows to add to their library, or interact with their Jellyseerr instance. Triggers on phrases like "request a movie", "add to jellyseerr", "find and request", "search jellyseerr", or mentions of requesting media content.
+description: Request movies and TV shows on mossflix through Jellyseerr at requests.mossflix.com. Use when the user wants to request media, add a film or show to the library, or check the status of a request. Triggers on "request a movie", "add to jellyseerr", "request season", "mossflix requests", or "add X to my library".
 ---
 
-# Jellyseerr Media Requests
+# Jellyseerr
 
-Request movies and TV shows through the Jellyseerr/Seerr API.
+Jellyseerr is the request front end for mossflix. It runs at `https://requests.mossflix.com`.
+It reads the library from Jellyfin. It sends approved requests to Radarr and Sonarr.
 
-## Prerequisites
+Use this skill to request media. Use the `radarr` or `sonarr` skill to change the library
+directly, or to add many titles at once.
 
-Set these environment variables:
-- `JELLYSEERR_URL` - Base URL (e.g., `http://localhost:5055`)
-- `JELLYSEERR_API_KEY` - API key from Jellyseerr Settings > General
-
-## Workflow
-
-### 1. Search for Media
+## Credentials
 
 ```bash
-curl -s "${JELLYSEERR_URL}/api/v1/search?query=SEARCH_TERM" \
-  -H "X-Api-Key: ${JELLYSEERR_API_KEY}" | jq
+URL=https://requests.mossflix.com
+KEY=$(op read "op://Private/Jellyseerr API Key/credential")
 ```
 
-Response contains `results` array with:
-- `id` - TMDB ID (use this for requests)
-- `mediaType` - "movie" or "tv"
-- `title` (movies) or `name` (TV)
-- `overview` - Description
-- `releaseDate` or `firstAirDate`
+Send the `X-Api-Key` header on every call. The API returns 401 with no key and 403 with a bad key.
 
-### 2. Create Request
-
-**Movie:**
-```bash
-curl -s -X POST "${JELLYSEERR_URL}/api/v1/request" \
-  -H "X-Api-Key: ${JELLYSEERR_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"mediaType": "movie", "mediaId": TMDB_ID}'
-```
-
-**TV Show (all seasons):**
-```bash
-curl -s -X POST "${JELLYSEERR_URL}/api/v1/request" \
-  -H "X-Api-Key: ${JELLYSEERR_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"mediaType": "tv", "mediaId": TMDB_ID, "seasons": "all"}'
-```
-
-**TV Show (specific seasons):**
-```bash
-curl -s -X POST "${JELLYSEERR_URL}/api/v1/request" \
-  -H "X-Api-Key: ${JELLYSEERR_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"mediaType": "tv", "mediaId": TMDB_ID, "seasons": [1, 2, 3]}'
-```
-
-### Request Options
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `mediaType` | string | Required: "movie" or "tv" |
-| `mediaId` | number | Required: TMDB ID from search |
-| `seasons` | array\|"all" | TV only: season numbers or "all" |
-| `is4k` | boolean | Request 4K version |
-
-### Response Status Codes
-
-Request `status` field:
-- `1` = Pending approval
-- `2` = Approved
-- `3` = Declined
-
-Media availability `status`:
-- `3` = Processing
-- `4` = Partially available
-- `5` = Available
-
-## Examples
-
-**User:** "Request the movie Dune"
-1. Search: `query=Dune`
-2. Find the correct result (check year/overview)
-3. POST request with `mediaType: "movie"` and the `id`
-
-**User:** "Add Breaking Bad to Jellyseerr"
-1. Search: `query=Breaking Bad`
-2. Confirm it's the right show
-3. POST request with `mediaType: "tv"`, `seasons: "all"`
-
-**User:** "Request season 1 of The Office"
-1. Search: `query=The Office`
-2. Clarify which version if ambiguous (US/UK)
-3. POST with `seasons: [1]`
-
-## Script
-
-Use `scripts/jellyseerr.py` for a streamlined workflow:
+## Search
 
 ```bash
-# Search
-uv run scripts/jellyseerr.py search "Movie Name"
-
-# Request movie
-uv run scripts/jellyseerr.py request movie TMDB_ID
-
-# Request TV (all seasons)
-uv run scripts/jellyseerr.py request tv TMDB_ID
-
-# Request specific seasons
-uv run scripts/jellyseerr.py request tv TMDB_ID --seasons 1 2 3
+curl -s --get "$URL/api/v1/search" --data-urlencode "query=dune" -H "X-Api-Key: $KEY" \
+  | jq -r '.results[] | select(.mediaType != "person")
+      | "\(.id)\t\(.mediaType)\t\(.title // .name)\t\(.releaseDate // .firstAirDate)"'
 ```
+
+The `id` field is the TMDB ID. Use it as `mediaId` in a request.
+
+## Request
+
+```bash
+# Movie
+curl -s -X POST "$URL/api/v1/request" -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"mediaType":"movie","mediaId":438631}'
+
+# TV, all seasons
+curl -s -X POST "$URL/api/v1/request" -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"mediaType":"tv","mediaId":1396,"seasons":"all"}'
+
+# TV, specific seasons
+curl -s -X POST "$URL/api/v1/request" -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d '{"mediaType":"tv","mediaId":1396,"seasons":[1,2]}'
+```
+
+Add `"is4k":true` for a 4K request.
+
+TV requests need the `seasons` field. Jellyseerr rejects a TV request without it.
+
+## Status
+
+```bash
+curl -s "$URL/api/v1/request?take=20&sort=added" -H "X-Api-Key: $KEY" \
+  | jq -r '.results[] | "\(.id)\t\(.type)\t\(.media.tmdbId)\tstatus=\(.status)\tmedia=\(.media.status)"'
+```
+
+| Field | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| request `status` | Pending | Approved | Declined | — | — |
+| `media.status` | Unknown | Pending | Processing | Partially available | Available |
+
+## Notes
+
+- Confirm the correct title with the user when the search gives more than one close match.
+  Ask which version you must request, for example The Office US or UK.
+- A duplicate request returns 409. Treat that as "already requested" and continue.
+- For a bulk job, such as a whole franchise, use `radarr` and `sonarr` instead. Those skills
+  set the quality profile and start the search in one call per title.
