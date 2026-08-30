@@ -54,7 +54,7 @@ allowed-tools: Read Grep Bash   # optional, restrict to needed tools
 |---|---|
 | Minimal API wrapper | [`skills/radarr`](skills/radarr/), [`skills/sonarr`](skills/sonarr/) |
 | Script-heavy + references | [`skills/skill-checker`](skills/skill-checker/) |
-| Database query + analytics | [`skills/powerwall`](skills/powerwall/), [`skills/tautulli`](skills/tautulli/) |
+| Database query + analytics | [`skills/powerwall`](skills/powerwall/) |
 | Multi-step authoring guide | [`skills/skill-creator`](skills/skill-creator/) |
 
 ## External resources
