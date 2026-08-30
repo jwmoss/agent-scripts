@@ -28,7 +28,7 @@ allowed-tools: Read Grep Bash   # optional, restrict to needed tools
 
 - **kebab-case** for skill and directory names.
 - **Avoid**: `helper`, `utils`, `misc`, reserved words like `claude` or `anthropic`.
-- **Prefer** action-oriented names: `sonarr` (manages Sonarr), `humanizer` (humanizes text).
+- **Prefer** action-oriented names such as `humanizer` (humanizes text).
 
 ## Authoring workflow
 
@@ -52,7 +52,6 @@ allowed-tools: Read Grep Bash   # optional, restrict to needed tools
 
 | Pattern | Look at |
 |---|---|
-| Minimal API wrapper | [`skills/radarr`](skills/radarr/), [`skills/sonarr`](skills/sonarr/) |
 | Script-heavy + references | [`skills/skill-checker`](skills/skill-checker/) |
 | Database query + analytics | [`skills/powerwall`](skills/powerwall/) |
 | Multi-step authoring guide | [`skills/skill-creator`](skills/skill-creator/) |
